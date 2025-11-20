@@ -1,0 +1,23 @@
+Name: Nishchal Bhandari Chhetri
+UTA ID: 1002161611
+
+Project Status: 100% Complete
+
+Implementation Details:
+- Modified growproc() in proc.c to support lazy page allocation
+- Implemented page fault handler in trap.c for on-demand allocation
+- Lazy allocator only updates virtual address space in sbrk()
+- Physical pages allocated on first access via page faults
+- Proper error handling for allocation failures and illegal accesses
+- Both DEFAULT and LAZY allocators work correctly
+
+Test Results:
+All 6 test cases pass successfully:
+✓ Test 1: sbrk(10) - No physical allocation with lazy allocator
+✓ Test 2: Write to valid range - Physical pages allocated on access
+✓ Test 3: Heap increase/shrink within same page
+✓ Test 4: Multiple page allocation/deallocation
+✓ Test 5: Allocation over limit - Proper error handling
+✓ Test 6: Write above program break - "Unhandled page fault!"
+
+Code compiles without warnings and runs correctly in QEMU.
