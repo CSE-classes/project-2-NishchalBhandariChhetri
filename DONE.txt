@@ -20,3 +20,140 @@ Test 5: Allocation over limit - Proper error handling
 Test 6: Write above program break - "Unhandled page fault!"
 
 All outputs match expected behavior from assignment specification.
+
+Trial:
+
+$ proj2_test 0
+
+Using the DEFAULT page allocator ...
+
+=========== TEST 1: sbrk(10) ===========
+Before sbrk(10), break 0x4000 free-frames 56788
+Calling sbrk(10) ... 
+After sbrk(10), break 0x400A free-frames 56787
+
+=========== TEST 2: writing valid bytes ===========
+Before the write, break 0x400A free-frames 56787
+Writing byte 0x400A ...
+After the write, free-frames 56787
+
+Before the write, free-frames 56787
+Writing byte 0x4009 ...
+After the write, free-frames 56787
+
+=========== TEST 3: sbrk(+) --> sbrk(-) --> write ===========
+Before the sbrk(+), break 0x400A free-frames 56787
+Calling sbrk(16) ...
+After the sbrk(+), break 0x401A free-frames 56787
+
+Before the sbrk(-), break 0x401A free-frames 56787
+Calling sbrk(-1) ...
+After the sbrk(-), break 0x4019 free-frames 56787
+
+Before the write, free-frames 56787
+Writing byte 0x4019 ...
+After the write, free-frames 56787
+
+===========TEST 4: sbrk(3 pages) --> write in 1st/2nd pages --> sbrk(-1 page) --> sbrk(-1 page) --> sbrk(-1 page)===========
+Before the sbrk(3 pages), break 0x4019 free-frames 56787
+Calling sbrk(12288) ...
+After the sbrk(3 pages), break 0x7019 free-frames 56784
+
+Before the write (in 1st page), free-frames 56784
+Writing byte 0x5019 ...
+After the write, free-frames 56784
+
+Before the write (in 2nd page), free-frames 56784
+Writing byte 0x6019 ...
+After the write, free-frames 56784
+
+Before the sbrk(-1 page), break 0x7019 free-frames 56784
+Calling sbrk(-4096) ...
+After the sbrk(-1 page), break 0x6019 free-frames 56785
+
+Before the sbrk(-1 page), break 0x6019 free-frames 56785
+Calling sbrk(-4096) ...
+After the sbrk(-1 page), break 0x5019 free-frames 56786
+
+Before the sbrk(-1 page), break 0x5019 free-frames 56786
+Calling sbrk(-4096) ...
+After the sbrk(-1 page), break 0x4019 free-frames 56787
+
+=========== TEST 5: allocating too much memory ===========
+Before sbrk(0x7FFFFFFF), break 0x4019 free-frames 56787
+Calling sbrk(0x7FFFFFFF) ... 
+Allocating pages failed!
+After sbrk(0x7FFFFFFF), break 0x4019 free-frames 56787
+
+=========== TEST 6: writing in an unallocated page above the progam break ===========
+Before the write, break 0x4019 free-frames 56787
+Writing byte 0x5019 ...
+Unhandled page fault for va:0x5019!
+pid 3 proj2_test: trap 14 err 6 on cpu 0 eip 0x756 addr 0x5019--kill proc
+$ proj2_test 1
+
+Using the LAZY page allocator ...
+
+=========== TEST 1: sbrk(10) ===========
+Before sbrk(10), break 0x4000 free-frames 56788
+Calling sbrk(10) ... 
+After sbrk(10), break 0x400A free-frames 56788
+
+=========== TEST 2: writing valid bytes ===========
+Before the write, break 0x400A free-frames 56788
+Writing byte 0x400A ...
+After the write, free-frames 56787
+
+Before the write, free-frames 56787
+Writing byte 0x4009 ...
+After the write, free-frames 56787
+
+=========== TEST 3: sbrk(+) --> sbrk(-) --> write ===========
+Before the sbrk(+), break 0x400A free-frames 56787
+Calling sbrk(16) ...
+After the sbrk(+), break 0x401A free-frames 56787
+
+Before the sbrk(-), break 0x401A free-frames 56787
+Calling sbrk(-1) ...
+After the sbrk(-), break 0x4019 free-frames 56787
+
+Before the write, free-frames 56787
+Writing byte 0x4019 ...
+After the write, free-frames 56787
+
+===========TEST 4: sbrk(3 pages) --> write in 1st/2nd pages --> sbrk(-1 page) --> sbrk(-1 page) --> sbrk(-1 page)===========
+Before the sbrk(3 pages), break 0x4019 free-frames 56787
+Calling sbrk(12288) ...
+After the sbrk(3 pages), break 0x7019 free-frames 56787
+
+Before the write (in 1st page), free-frames 56787
+Writing byte 0x5019 ...
+After the write, free-frames 56786
+
+Before the write (in 2nd page), free-frames 56786
+Writing byte 0x6019 ...
+After the write, free-frames 56785
+
+Before the sbrk(-1 page), break 0x7019 free-frames 56785
+Calling sbrk(-4096) ...
+After the sbrk(-1 page), break 0x6019 free-frames 56785
+
+Before the sbrk(-1 page), break 0x6019 free-frames 56785
+Calling sbrk(-4096) ...
+After the sbrk(-1 page), break 0x5019 free-frames 56786
+
+Before the sbrk(-1 page), break 0x5019 free-frames 56786
+Calling sbrk(-4096) ...
+After the sbrk(-1 page), break 0x4019 free-frames 56787
+
+=========== TEST 5: allocating too much memory ===========
+Before sbrk(0x7FFFFFFF), break 0x4019 free-frames 56787
+Calling sbrk(0x7FFFFFFF) ... 
+Allocating pages failed!
+After sbrk(0x7FFFFFFF), break 0x4019 free-frames 56787
+
+=========== TEST 6: writing in an unallocated page above the progam break ===========
+Before the write, break 0x4019 free-frames 56787
+Writing byte 0x5019 ...
+Unhandled page fault for va:0x5019!
+pid 4 proj2_test: trap 14 err 6 on cpu 0 eip 0x756 addr 0x5019--kill proc
