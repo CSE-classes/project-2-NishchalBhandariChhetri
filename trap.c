@@ -8,6 +8,7 @@
 #include "traps.h"
 #include "spinlock.h"
 
+
 extern int page_allocator_type;
 int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
 // Interrupt descriptor table (shared by all CPUs).
@@ -49,48 +50,45 @@ trap(struct trapframe *tf)
     return;
   }
 
-  // CS 3320 project 2 - LAZY PAGE ALLOCATION
-  if(tf->trapno == T_PGFLT){
-    uint faulting_va = rcr2();
+// CS 3320 project 2: lazy page fault handler
+if (tf->trapno == T_PGFLT) {
+    uint faultva = rcr2();                // faulting virtual address
+    struct proc *p = proc;
 
-    // Lazy allocator enabled?
-    if(page_allocator_type == 1){
-      struct proc *curproc = myproc();  // Use myproc() for consistency
-      uint page_va = PGROUNDDOWN(faulting_va);
+    // Only handle user-mode lazy allocation
+    if (p && (tf->cs & 3) == DPL_USER && page_allocator_type == 1) {
 
-      // Check if this is a valid heap access (within allocated virtual space)
-      // but NOT in the stack guard page
-      if(faulting_va < curproc->sz && 
-         !(page_va >= curproc->sz - PGSIZE && page_va < curproc->sz)) {
-        
-        char *mem = kalloc();
-        if(mem == 0){
-          cprintf("Allocating pages failed!\n");
-          goto pf_done;  // Let original handler deal with it
+        // Valid lazy fault range:
+        //   - at or below heap break (inclusive)
+        //   - above NULL page
+        //   - below kernel memory
+        if (faultva <= p->sz && faultva >= PGSIZE && faultva < KERNBASE) {
+
+            void *va = (void*)PGROUNDDOWN(faultva);
+            char *mem = kalloc();
+
+            if (mem == 0) {
+                cprintf("lazy alloc: out of memory\n");
+                p->killed = 1;
+            } else {
+                memset(mem, 0, PGSIZE);
+
+                if (mappages(p->pgdir, va, PGSIZE, V2P(mem), PTE_W|PTE_U) < 0) {
+                    cprintf("lazy alloc: mappages failed\n");
+                    kfree(mem);
+                    p->killed = 1;
+                } else {
+                    switchuvm(p);
+                    return;             // retry the instruction
+                }
+            }
         }
-
-        memset(mem, 0, PGSIZE);
-
-        if(mappages(curproc->pgdir, (void*)page_va, PGSIZE, V2P(mem),
-                    PTE_W | PTE_U) < 0){
-          cprintf("Allocating pages failed!\n");
-          kfree(mem);
-          goto pf_done;  // Let original handler deal with it
-        }
-
-        return;   // Successfully handled - no need to kill process
-      }
-      
-      // If we get here, it's either:
-      // - Above heap (faulting_va >= curproc->sz), OR
-      // - Stack guard page access
-      cprintf("Unhandled page fault!\n");
-    } else {
-      // DEFAULT allocator - original behavior
-      cprintf("Unhandled page fault for va:0x%x!\n", faulting_va);
     }
-pf_done:;
-  }
+
+    // Not handled lazily
+    cprintf("Unhandled page fault for va:0x%x!\n", faultva);
+}
+
 
   // ... rest of your switch statement remains the same ...
   switch(tf->trapno){

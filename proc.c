@@ -109,58 +109,55 @@ userinit(void)
 int
 growproc(int n)
 {
+  struct proc *p = proc;    // get current process
   uint sz;
-  struct proc *p = myproc();
-  
+
+  if(p == 0)
+    return -1;
+
   sz = p->sz;
 
-  // LAZY ALLOCATOR
+  /* LAZY ALLOCATOR: when enabled (page_allocator_type == 1),
+     on increase, only advance the virtual break (p->sz) without
+     allocating physical pages. On decrease, actually free pages. */
   if(page_allocator_type == 1) {
     if(n > 0) {
       uint newsz = sz + n;
-      
-      // Check for overflow and process memory limits
       if(newsz < sz || newsz >= KERNBASE) {
-        cprintf("Allocating pages failed!\n");
+        cprintf("Allocating pages failed!\n"); // CS3320: project 2
         return -1;
       }
-      
-      // Only update virtual size - no physical allocation
       p->sz = newsz;
+      // No physical allocation here (lazy)
     } else if(n < 0) {
       uint newsz = sz + n;
-      
-      // Check for underflow
       if(newsz > sz) {
-        cprintf("Deallocating pages failed!\n");
+        cprintf("Deallocating pages failed!\n"); // CS3320
         return -1;
       }
-      
-      // For shrinking, actually deallocate the pages
+      // For shrinking we must free any physical pages that exist
       if(deallocuvm(p->pgdir, sz, newsz) == 0) {
-        cprintf("Deallocating pages failed!\n");
+        cprintf("Deallocating pages failed!\n"); // CS3320
         return -1;
       }
       p->sz = newsz;
     }
-    // n == 0 case falls through (just returns current size)
-    
     switchuvm(p);
     return 0;
   }
 
+  /* Default (non-lazy) behavior: allocate/deallocate physical pages now. */
   if(n > 0){
     if((sz = allocuvm(p->pgdir, sz, sz + n)) == 0) {
-      cprintf("Allocating pages failed!\n");
+      cprintf("Allocating pages failed!\n"); // CS3320: project 2
       return -1;
     }
   } else if(n < 0){
     if((sz = deallocuvm(p->pgdir, sz, sz + n)) == 0) {
-      cprintf("Deallocating pages failed!\n");
+      cprintf("Deallocating pages failed!\n"); // CS3320: project 2
       return -1;
     }
   }
-  
   p->sz = sz;
   switchuvm(p);
   return 0;
